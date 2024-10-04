@@ -1,3 +1,5 @@
+import math
+
 import altair as alt
 import streamlit as st
 
@@ -17,8 +19,8 @@ def load_page():
     st.header("Recommend your favorite tea")
     st.write(
         """
-        I'd love to try your recommended tea.
-        Any recommendations (except for vanilla- or caramel-flavoured ones) are welcomed!
+        Let me try your favorite tea!
+        Any recommendations are welcomed (except for vanilla- or caramel-flavoured ones).
         """
     )
     with st.form("add_recommendation_form"):
@@ -35,11 +37,24 @@ def load_page():
                                                                "name": name
                                                            })
 
-
-    # Show section to view and edit existing tickets in a table.
+    # Table.
     st.header("Reviews")
     st.write(f"Number of reviews: `{len(st.session_state.df)}`")
-    st.dataframe(st.session_state.df)
+    visualise_df = st.session_state.df.copy()
+    visualise_df['score'] = visualise_df['score'].apply(lambda score: f"{str(score)} " + ("⭐️" * math.floor(score)))
+    st.dataframe(
+        visualise_df,
+        column_config={
+            "date_added": st.column_config.DatetimeColumn(
+                "date added",
+                format="DD-MM-YYYY"
+            ),
+            "link": st.column_config.LinkColumn(
+                "link",
+                width="small"
+            )
+        }
+        )
     # st.info(
     #     "You can edit the tickets by double clicking on a cell. Note how the plots below "
     #     "update automatically! You can also sort the table by clicking on the column headers.",
@@ -70,42 +85,55 @@ def load_page():
     #     disabled=["ID", "Date Submitted"],
     # )
 
-    # # Show some metrics and charts about the ticket.
-    # st.header("Statistics")
+    st.divider()
+    st.header("Statistics")
 
-    # # Show metrics side by side using `st.columns` and `st.metric`.
-    # col1, col2, col3 = st.columns(3)
-    # num_open_tickets = len(st.session_state.df[st.session_state.df.Status == "Open"])
-    # col1.metric(label="Number of open tickets", value=num_open_tickets, delta=10)
-    # col2.metric(label="First response time (hours)", value=5.2, delta=-1.5)
-    # col3.metric(label="Average resolution time (hours)", value=16, delta=2)
+    # Metrics.
+    col1_1, col1_2 = st.columns(2)
+    num_reviewed_brands = st.session_state.df['brand'].nunique()
+    col1_1.metric(label="Number of teas reviewed", 
+                  value=len(st.session_state.df))
+    col1_2.metric(label="Number of brands reviewed", 
+                  value=num_reviewed_brands)
+    
+    col2_1, col2_2 = st.columns(2)
+    col2_1.metric(label="Average score", 
+                  value=round(st.session_state.df['score'].mean(), 2))
+    col2_2.metric(label="Standard deviation of the scores", 
+                  value=round(st.session_state.df['score'].std() ,2))
+    
+    # Distribution.
+    st.write("")
+    st.write("##### Score distribution")
+    score_plot = (
+        alt.Chart(st.session_state.df)
+        .mark_bar()
+        .encode(
+            alt.X("score:Q", 
+                  bin=alt.Bin(step=0.5),
+                  scale=alt.Scale(domain=[0.0,5,0])),
+            alt.Y("count()"),
+            alt.Color("score",
+                      bin=alt.Bin(step=0.5),
+                      scale=alt.Scale(scheme="pinkyellowgreen"))
+        )
+        .configure_legend(
+            orient="bottom", 
+            titleFontSize=14, 
+            labelFontSize=14, 
+            titlePadding=5
+        )
+    )
+    st.altair_chart(score_plot, use_container_width=True, theme="streamlit")
 
-    # # Show two Altair charts using `st.altair_chart`.
-    # st.write("")
-    # st.write("##### Ticket status per month")
-    # status_plot = (
-    #     alt.Chart(edited_df)
-    #     .mark_bar()
-    #     .encode(
-    #         x="month(Date Submitted):O",
-    #         y="count():Q",
-    #         xOffset="Status:N",
-    #         color="Status:N",
-    #     )
-    #     .configure_legend(
-    #         orient="bottom", titleFontSize=14, labelFontSize=14, titlePadding=5
-    #     )
-    # )
-    # st.altair_chart(status_plot, use_container_width=True, theme="streamlit")
-
-    # st.write("##### Current ticket priorities")
-    # priority_plot = (
-    #     alt.Chart(edited_df)
-    #     .mark_arc()
-    #     .encode(theta="count():Q", color="Priority:N")
-    #     .properties(height=300)
-    #     .configure_legend(
-    #         orient="bottom", titleFontSize=14, labelFontSize=14, titlePadding=5
-    #     )
-    # )
-    # st.altair_chart(priority_plot, use_container_width=True, theme="streamlit")
+    st.write("##### Current reviewed genres")
+    genre_plot = (
+        alt.Chart(st.session_state.df)
+        .mark_arc()
+        .encode(theta="count():Q", color="genre:N")
+        .properties(height=300)
+        .configure_legend(
+            orient="bottom", titleFontSize=14, labelFontSize=14, titlePadding=5
+        )
+    )
+    st.altair_chart(genre_plot, use_container_width=True, theme="streamlit")
