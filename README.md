@@ -1,10 +1,11 @@
-# 🎫 Support tickets template
+# 🫖 Tea review app
 
-A simple Streamlit app showing an internal tool that lets you create, manage, and visualize support tickets. 
+A demo streamlit app for displaying the reviews of tea. 
+It also accepts the recommendations from visitors (who are also likely to be interested in teas).
 
 [![Open in Streamlit](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://support-tickets-template.streamlit.app/)
 
-### How to run it on your own machine
+### Installation
 
 1. Install the requirements
 
